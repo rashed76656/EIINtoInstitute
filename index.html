@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SR Security Team - EIIN Information</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Orbitron:wght@500&family=Poppins:wght@300;500&display=swap" rel="stylesheet">
+    <style>
+        /* CSS একই আছে */
+        body { margin: 0; padding: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); font-family: 'Poppins', sans-serif; }
+        .header { text-align: center; margin: 2rem 0; }
+        .main-title { font-family: 'Orbitron', sans-serif; color: #00ff88; font-size: 3.5rem; text-shadow: 0 0 15px rgba(0, 255, 136, 0.5); margin-bottom: 1rem; }
+        .sub-title { font-family: 'Bebas Neue', cursive; color: #fff; font-size: 2.5rem; letter-spacing: 3px; }
+        .input-container { position: relative; margin: 3rem 0; }
+        .ein-input { width: 400px; padding: 15px 25px; font-size: 1.2rem; border: 2px solid #00ff88; border-radius: 30px; background: transparent; color: #fff; transition: all 0.3s ease; }
+        .ein-input::placeholder { color: #ffffff80; animation: placeholderAnim 2s infinite; }
+        @keyframes placeholderAnim { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+        .submit-btn { display: block; margin: 0 auto; padding: 12px 35px; font-size: 1.1rem; background: linear-gradient(45deg, #00ff88, #2196f3); border: none; border-radius: 25px; color: #fff; cursor: pointer; transition: transform 0.3s ease; font-family: 'Poppins', sans-serif; font-weight: 500; }
+        .submit-btn:hover { transform: scale(1.05); }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; }
+        .modal-content { background: #16213e; padding: 2rem; border-radius: 15px; width: 80%; max-width: 500px; color: #fff; position: relative; }
+        .close-btn { position: absolute; top: 15px; right: 15px; cursor: pointer; color: #00ff88; font-size: 1.5rem; }
+        .error-message { color: #ff4444; text-align: center; padding: 15px; border: 1px solid #ff4444; border-radius: 8px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 class="main-title">SR SECURITY TEAM</h1>
+        <h2 class="sub-title">EIIN to Institute Information</h2>
+    </div>
+
+    <!-- EIIN Input (লিডিং জিরো সাপোর্ট) -->
+    <div class="input-container">
+        <input type="text" class="ein-input" placeholder="Enter EIIN Number" id="einInput" pattern="\d*" maxlength="6">
+    </div>
+
+    <button class="submit-btn" onclick="fetchInstituteInfo()">Submit</button>
+
+    <!-- Modal -->
+    <div class="modal" id="infoModal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <div id="instituteInfo"></div>
+        </div>
+    </div>
+
+    <script>
+        // আপনার API URL এখানে দিন
+        const API_URL = "https://your-real-api.com/search";
+
+        async function fetchInstituteInfo() {
+            const einInput = document.getElementById('einInput');
+            const ein = einInput.value.trim();
+            
+            // EIIN ভ্যালিডেশন (৬ ডিজিট)
+            if (!ein || ein.length !== 6 || isNaN(ein)) {
+                showError("EIIN must be 6 digits");
+                einInput.focus();
+                return;
+            }
+
+            try {
+                // API কল CORS হেডার সহ
+                const response = await fetch(`${API_URL}?eiin=${ein}`, {
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Access-Control-Allow-Origin": "*"
+                    }
+                });
+
+                if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+                
+                const data = await response.json();
+                console.log("API Response:", data); // ডিবাগিং
+
+                // API স্পেসিফিক এরর চেক (যদি থাকে)
+                if (data.error || !data.name) {
+                    showError(data.error || "Institute not found");
+                    return;
+                }
+                
+                displayInfo(data);
+            } catch (error) {
+                console.error('Error:', error);
+                showError("Failed to load data. Check console.");
+            }
+        }
+
+        function displayInfo(data) {
+            const infoContainer = document.getElementById('instituteInfo');
+            // API রেসপন্স অনুযায়ী ফিল্ড ম্যাপ করুন
+            infoContainer.innerHTML = `
+                <h2>${data.name}</h2>
+                <p><strong>EIIN:</strong> ${data.eiin || data.id}</p>
+                <p><strong>Location:</strong> ${data.district || data.division || data.location}</p>
+                <p><strong>Type:</strong> ${data.institute_type || data.category || data.type}</p>
+                <p><strong>Established:</strong> ${data.established_year || data.established}</p>
+            `;
+            document.getElementById('infoModal').style.display = 'flex';
+        }
+
+        function showError(message) {
+            const infoContainer = document.getElementById('instituteInfo');
+            infoContainer.innerHTML = `<div class="error-message">${message}</div>`;
+            document.getElementById('infoModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('infoModal').style.display = 'none';
+        }
+
+        // মডাল ক্লোজ করার লজিক
+        window.onclick = function(event) {
+            const modal = document.getElementById('infoModal');
+            if (event.target === modal) closeModal();
+        }
+    </script>
+</body>
+</html>
